@@ -61,6 +61,7 @@ static char *strippedname;
 static char description[255];
 static char cloneurl[1024];
 static int haslicense, hasreadme, hassubmodules;
+static char* readmeextension = "";
 
 /* cache */
 static git_oid lastoid;
@@ -365,7 +366,16 @@ writeheader(FILE *fp, const char *title)
 	if (hassubmodules)
 		fprintf(fp, " | <a href=\"%sfile/.gitmodules.html\">Submodules</a>", relpath);
 	if (hasreadme)
+	{
 		fprintf(fp, " | <a href=\"%sfile/README.html\">README</a>", relpath);
+    }
+	else
+	{
+		if (readmeextension != '\0')
+		{
+			fprintf(fp, " | <a href=\"%sfile/README.%s.html\">README</a>", relpath, readmeextension);
+		}
+	}
 	if (haslicense)
 		fprintf(fp, " | <a href=\"%sfile/LICENSE.html\">LICENSE</a>", relpath);
 	fputs("</td></tr></table>\n<hr/>\n<div id=\"content\">\n", fp);
@@ -1093,6 +1103,38 @@ main(int argc, char *argv[])
 	hasreadme = (!git_revparse_single(&obj, repo, "HEAD:README") &&
 		git_object_type(obj) == GIT_OBJ_BLOB);
 	git_object_free(obj);
+
+	if (!hasreadme)
+	{
+		char* readme_extensions[16] = {
+				"markdown", "mdown", "mkdn", "md",
+				"textile",
+				"rdoc",
+				"org",
+				"creole",
+				"mediawiki", "wiki",
+				"rst",
+				"asciidoc", "adoc", "asc",
+				"pod",
+				"txt"
+		};
+		for (int i = 0; i < 16; i++)
+		{
+			char lookup_head[30 + 1];
+			snprintf(lookup_head, 30, "HEAD:README.%s", readme_extensions[i]);
+			if (!git_revparse_single(&obj, repo, lookup_head) &&
+				git_object_type(obj) == GIT_OBJ_BLOB)
+			{
+				git_object_free(obj);
+				readmeextension = readme_extensions[i];
+				break;
+			}
+			else
+			{
+				git_object_free(obj);
+			}
+		}
+	}
 
 	hassubmodules = (!git_revparse_single(&obj, repo, "HEAD:.gitmodules") &&
 		git_object_type(obj) == GIT_OBJ_BLOB);
