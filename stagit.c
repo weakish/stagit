@@ -61,7 +61,7 @@ static char *strippedname;
 static char description[255];
 static char cloneurl[1024];
 static int haslicense, hasreadme, hassubmodules;
-static char* readmeextension = "";
+static char readmeextension[16] = "NOREADME";
 
 /* cache */
 static git_oid lastoid;
@@ -371,7 +371,7 @@ writeheader(FILE *fp, const char *title)
     }
 	else
 	{
-		if (readmeextension != '\0')
+		if (strncmp(readmeextension, "NOREADME", 8) != 0)
 		{
 			fprintf(fp, " | <a href=\"%sfile/README.%s.html\">README</a>", relpath, readmeextension);
 		}
@@ -1126,7 +1126,7 @@ main(int argc, char *argv[])
 				git_object_type(obj) == GIT_OBJ_BLOB)
 			{
 				git_object_free(obj);
-				readmeextension = readme_extensions[i];
+				snprintf(readmeextension, 16, "%s", readme_extensions[i]);
 				break;
 			}
 			else
